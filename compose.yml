@@ -21,13 +21,8 @@ services:
           path: compose.yaml
 
   db_service:
-    image: timescale/timescaledb:latest-pg17
+    image: postgres
     env_file:
       - .env.compose
     ports:
       - "5432:5432"
-    # volumes:
-    #   - timescaledb_data:/var/lib/postgresql/data
-
-# volumes:
-#   timescaledb_data:

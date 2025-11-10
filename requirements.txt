@@ -3,6 +3,7 @@ uvicorn
 gunicorn 
 sqlalchemy
 sqlmodel
-timescaledb
 pyjwt
 pydantic
+python-decouple
+psycopg2-binary
