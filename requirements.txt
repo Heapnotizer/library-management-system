@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+gunicorn 
+sqlalchemy
+sqlmodel
+timescaledb
+pyjwt
+pydantic
+python-dotenv
+black
+flake8
+mypy
