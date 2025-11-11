@@ -9,6 +9,7 @@ from .config import DATABASE_URL
 from ..v1.authors.models import Author
 from ..v1.books.models import Book
 from ..v1.users.models import User
+from ..v1.transactions.models import Transaction
 
 if DATABASE_URL == "":
     raise NotImplementedError("DATABASE_URL needs to be set")

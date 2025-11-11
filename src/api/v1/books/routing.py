@@ -8,15 +8,26 @@ from .repository import (
     update_book, delete_book, check_book_availability, is_book_borrowed
 )
 from ...db.session import get_session
+from ..users.routing import get_current_user
+from ..users.models import UserRole
 
 router = APIRouter()
+
+
+def require_admin(current_user = Depends(get_current_user)):
+    """Dependency to require admin role"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 
 @router.post("/", response_model=BookResponse, status_code=201)
 async def create_book_endpoint(
     book_data: BookCreate,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(require_admin)
 ):
-    """Create a new book in the library"""
+    """Create a new book in the library - Admin Only"""
     try:
         # Check if book with same ISBN already exists
         if book_data.isbn:
@@ -43,9 +54,10 @@ async def get_books_endpoint(
     search: Optional[str] = Query(None, description="Search by title or ISBN"),
     author_id: Optional[int] = Query(None, description="Filter by author ID"),
     available_only: bool = Query(False, description="Show only available books"),
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
 ):
-    """Get list of books with optional filtering and pagination"""
+    """Get list of books with optional filtering and pagination - Protected (All Users)"""
     return get_books(
         db=db,
         skip=skip,
@@ -58,9 +70,10 @@ async def get_books_endpoint(
 @router.get("/{book_id}", response_model=BookResponse)
 async def get_book_endpoint(
     book_id: int,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
 ):
-    """Get details of a specific book"""
+    """Get details of a specific book - Protected (All Users)"""
     book = get_book(db, book_id)
     if not book:
         raise HTTPException(
@@ -73,9 +86,10 @@ async def get_book_endpoint(
 async def update_book_endpoint(
     book_id: int,
     book_update: BookUpdate,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(require_admin)
 ):
-    """Update book information"""
+    """Update book information - Admin Only"""
     try:
         book = get_book(db, book_id)
         if not book:
@@ -105,9 +119,10 @@ async def update_book_endpoint(
 @router.delete("/{book_id}", status_code=204)
 async def delete_book_endpoint(
     book_id: int,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(require_admin)
 ):
-    """Remove a book from the library"""
+    """Remove a book from the library - Admin Only"""
     book = get_book(db, book_id)
     if not book:
         raise HTTPException(
@@ -128,9 +143,10 @@ async def delete_book_endpoint(
 @router.get("/{book_id}/availability")
 async def check_book_availability_endpoint(
     book_id: int,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
 ):
-    """Check availability status of a specific book"""
+    """Check availability status of a specific book - Protected (All Users)"""
     book = get_book(db, book_id)
     if not book:
         raise HTTPException(
@@ -139,3 +155,4 @@ async def check_book_availability_endpoint(
         )
     
     return check_book_availability(db, book)
+

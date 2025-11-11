@@ -8,16 +8,26 @@ from .repository import (
     update_author, delete_author
 )
 from ...db.session import get_session
+from ..users.routing import get_current_user
+from ..users.models import UserRole
 
 router = APIRouter()
+
+
+def require_admin(current_user = Depends(get_current_user)):
+    """Dependency to require admin role"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
 
 
 @router.post("/", response_model=AuthorResponse, status_code=201)
 async def create_author_endpoint(
     author_data: AuthorCreate,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(require_admin)
 ):
-    """Create a new author"""
+    """Create a new author - Admin Only"""
     try:
         # Check if author with same email already exists
         if author_data.email:
@@ -44,9 +54,10 @@ async def get_authors_endpoint(
     limit: int = Query(10, ge=1, le=100, description="Number of authors to return"),
     search: Optional[str] = Query(None, description="Search by name or email"),
     nationality: Optional[str] = Query(None, description="Filter by nationality"),
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
 ):
-    """Get list of authors with optional filtering and pagination"""
+    """Get list of authors with optional filtering and pagination - Protected (All Users)"""
     try:
         return get_authors(
             db=db,
@@ -64,9 +75,10 @@ async def get_authors_endpoint(
 @router.get("/{author_id}", response_model=AuthorResponse)
 async def get_author_endpoint(
     author_id: int,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(get_current_user)
 ):
-    """Get details of a specific author"""
+    """Get details of a specific author including their books - Protected (All Users)"""
     try:
         author = get_author(db, author_id)
         if not author:
@@ -85,9 +97,10 @@ async def get_author_endpoint(
 async def update_author_endpoint(
     author_id: int,
     author_update: AuthorUpdate,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(require_admin)
 ):
-    """Update author information"""
+    """Update author information - Admin Only"""
     try:
         author = get_author(db, author_id)
         if not author:
@@ -118,9 +131,10 @@ async def update_author_endpoint(
 @router.delete("/{author_id}", status_code=204)
 async def delete_author_endpoint(
     author_id: int,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
+    current_user = Depends(require_admin)
 ):
-    """Remove an author from the system"""
+    """Remove an author from the system - Admin Only"""
     try:
         author = get_author(db, author_id)
         if not author:
