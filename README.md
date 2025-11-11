@@ -114,7 +114,7 @@ A modern Learning Management System built with **FastAPI**, **SQLModel**, and **
 
 1. **Clone the repository**
    ```bash
-   cd creativescript-lms
+   cd library-management-system
    ```
 
 2. **Configure environment variables**
