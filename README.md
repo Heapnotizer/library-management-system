@@ -125,7 +125,7 @@ A modern Library Management System built with **FastAPI**, **SQLModel**, and **P
 
 3. **Start the system**
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 4. **Access the API**
@@ -136,7 +136,6 @@ A modern Library Management System built with **FastAPI**, **SQLModel**, and **P
 5. **API Documentation**
    ```
    http://localhost:8000/docs (Swagger UI)
-   http://localhost:8000/redoc (ReDoc)
    ```
 
 ### Local Development
