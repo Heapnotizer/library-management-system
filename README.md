@@ -1,4 +1,4 @@
-#Learning Management System
+# Learning Management System
 
 A modern Learning Management System built with **FastAPI**, **SQLModel**, and **PostgreSQL**. Features comprehensive user authentication, role-based access control, and a complete book borrowing/transaction system.
 
