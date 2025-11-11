@@ -4,6 +4,7 @@ from api.db.session import init_db
 from fastapi import FastAPI
 from api.v1.books.routing import router as books_router
 from api.v1.authors.routing import router as authors_router
+from api.v1.users.routing import router as users_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,6 +16,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(books_router, prefix="/api/v1/books")
 app.include_router(authors_router, prefix="/api/v1/authors")
+app.include_router(users_router, prefix="/api/v1/users")
 
 @app.get("/health")
 def read_health():

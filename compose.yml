@@ -1,6 +1,6 @@
 services:
   db_service:
-    image: postgres:16
+    image: postgres
     env_file:
       - .env.compose
     ports:
@@ -21,7 +21,7 @@ services:
       - .env.compose
     ports:
       - "8002:8002"
-    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    command: /opt/run.sh
     volumes:
       - ./src:/code:rw
     depends_on:

@@ -7,3 +7,5 @@ pyjwt
 pydantic
 python-decouple
 psycopg2-binary
+bcrypt
+python-multipart 
