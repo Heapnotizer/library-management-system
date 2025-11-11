@@ -439,20 +439,3 @@ creativescript-lms/
 ├── .env.compose                # Environment variables
 └── README.md                   # This file
 ```
-
-## 🤝 Contributing
-
-1. Follow the existing code structure
-2. Use the repository pattern for data access
-3. Add proper error handling
-4. Document new endpoints
-5. Test manually before committing
-
-## 📄 License
-
-Internal project - CreativeScript LMS
-
----
-
-**Last Updated**: November 11, 2025  
-**Version**: 1.0.0
