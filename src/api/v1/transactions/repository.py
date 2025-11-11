@@ -7,8 +7,18 @@ from .models import Transaction, TransactionCreate, TransactionUpdate
 
 
 def create_transaction(db: Session, transaction_data: TransactionCreate) -> Transaction:
-    """Create a new transaction (borrow request)"""
-    try:
+    """Create a new transaction (borrow request)
+    
+    Validates that the book has available copies before allowing the borrow
+    """
+    try: 
+        from ..books.repository import calculate_available_copies
+        
+        # Check if book exists and has available copies
+        available = calculate_available_copies(db, transaction_data.book_id)
+        if available <= 0:
+            raise ValueError("No available copies of this book to borrow")
+        
         db_transaction = Transaction(
             user_id=transaction_data.user_id,
             book_id=transaction_data.book_id,
@@ -21,6 +31,7 @@ def create_transaction(db: Session, transaction_data: TransactionCreate) -> Tran
         return db_transaction
     except IntegrityError as e:
         db.rollback()
+        print(e)
         if "user_id" in str(e):
             raise ValueError("User not found")
         if "book_id" in str(e):

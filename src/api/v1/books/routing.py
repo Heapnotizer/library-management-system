@@ -5,7 +5,8 @@ from typing import List, Optional
 from .models import BookCreate, BookUpdate, BookResponse
 from .repository import (
     create_book, get_book, get_book_by_isbn, get_books, 
-    update_book, delete_book, check_book_availability, is_book_borrowed
+    update_book, delete_book, check_book_availability, is_book_borrowed,
+    book_to_response
 )
 from ...db.session import get_session
 from ..users.routing import get_current_user
@@ -29,17 +30,9 @@ async def create_book_endpoint(
 ):
     """Create a new book in the library - Admin Only"""
     try:
-        # Check if book with same ISBN already exists
-        if book_data.isbn:
-            existing_book = get_book_by_isbn(db, book_data.isbn)
-            if existing_book:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Book with ISBN {book_data.isbn} already exists"
-                )
-        
         # Create new book using CRUD function
-        return create_book(db, book_data)
+        book = create_book(db, book_data)
+        return book_to_response(db, book)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
@@ -58,7 +51,7 @@ async def get_books_endpoint(
     current_user = Depends(get_current_user)
 ):
     """Get list of books with optional filtering and pagination - Protected (All Users)"""
-    return get_books(
+    books = get_books(
         db=db,
         skip=skip,
         limit=limit,
@@ -66,6 +59,7 @@ async def get_books_endpoint(
         author_id=author_id,
         available_only=available_only
     )
+    return [book_to_response(db, book) for book in books]
 
 @router.get("/{book_id}", response_model=BookResponse)
 async def get_book_endpoint(
@@ -80,7 +74,7 @@ async def get_book_endpoint(
             status_code=404,
             detail=f"Book with ID {book_id} not found"
         )
-    return book
+    return book_to_response(db, book)
 
 @router.patch("/{book_id}", response_model=BookResponse)
 async def update_book_endpoint(
@@ -98,17 +92,9 @@ async def update_book_endpoint(
                 detail=f"Book with ID {book_id} not found"
             )
         
-        # Check if ISBN is being updated and already exists
-        if book_update.isbn and book_update.isbn != book.isbn:
-            existing_book = get_book_by_isbn(db, book_update.isbn)
-            if existing_book:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Book with ISBN {book_update.isbn} already exists"
-                )
-        
         # Update using CRUD function
-        return update_book(db, book, book_update)
+        book = update_book(db, book, book_update)
+        return book_to_response(db, book)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
@@ -131,7 +117,7 @@ async def delete_book_endpoint(
         )
     
     # Check if book is currently borrowed
-    if is_book_borrowed(book):
+    if is_book_borrowed(db, book):
         raise HTTPException(
             status_code=400,
             detail="Cannot delete book that is currently borrowed"
