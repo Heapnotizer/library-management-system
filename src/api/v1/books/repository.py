@@ -7,8 +7,25 @@ from .models import Book, BookCreate, BookUpdate
 
 
 def create_book(db: Session, book_data: BookCreate) -> Book:
-    """Create a new book"""
+    """Create a new book
+    
+    If a book with the same ISBN already exists, increment total_copies
+    Otherwise create a new book entry
+    """
     try:
+        # Check if book with same ISBN exists
+        if book_data.isbn:
+            existing_book = get_book_by_isbn(db, book_data.isbn)
+            if existing_book:
+                # Increment total_copies and available_copies
+                existing_book.total_copies += 1
+                existing_book.available_copies += 1
+                existing_book.updated_at = datetime.now(timezone.utc)
+                db.commit()
+                db.refresh(existing_book)
+                return existing_book
+        
+        # Create new book entry
         db_book = Book(**book_data.model_dump())
         db.add(db_book)
         db.commit()

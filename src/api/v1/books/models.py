@@ -11,7 +11,6 @@ class BookBase(SQLModel):
     title: str = Field(min_length=1, max_length=200)
     isbn: Optional[str] = Field(default=None, max_length=13, unique=True)
     published_year: Optional[int] = Field(default=None, ge=1000, le=2030)
-    total_copies: int = Field(default=1, ge=1)
     available_copies: int = Field(default=1, ge=0)
     author_id: int = Field(foreign_key="author.id")
     description: Optional[str] = Field(default=None, max_length=1000)
@@ -19,6 +18,7 @@ class BookBase(SQLModel):
 class Book(BookBase, table=True):
     """Book database model"""
     id: Optional[int] = Field(default=None, primary_key=True)
+    total_copies: int = Field(default=1, ge=1)  # Calculated field - updated when same ISBN is added
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     author: "Author" = Relationship(back_populates="books")
@@ -39,7 +39,6 @@ class BookUpdate(SQLModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     isbn: Optional[str] = Field(default=None, max_length=13, unique=True)
     published_year: Optional[int] = Field(default=None, ge=1000, le=2030)
-    total_copies: Optional[int] = Field(default=None, ge=1)
     available_copies: Optional[int] = Field(default=None, ge=0)
     author_id: Optional[int] = Field(default=None)
     description: Optional[str] = Field(default=None, max_length=1000)
