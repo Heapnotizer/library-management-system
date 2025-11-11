@@ -17,17 +17,24 @@ async def create_book_endpoint(
     db: Session = Depends(get_session)
 ):
     """Create a new book in the library"""
-    # Check if book with same ISBN already exists
-    if book_data.isbn:
-        existing_book = get_book_by_isbn(db, book_data.isbn)
-        if existing_book:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Book with ISBN {book_data.isbn} already exists"
-            )
-    
-    # Create new book using CRUD function
-    return create_book(db, book_data)
+    try:
+        # Check if book with same ISBN already exists
+        if book_data.isbn:
+            existing_book = get_book_by_isbn(db, book_data.isbn)
+            if existing_book:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Book with ISBN {book_data.isbn} already exists"
+                )
+        
+        # Create new book using CRUD function
+        return create_book(db, book_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while creating the book")
 
 @router.get("/", response_model=List[BookResponse])
 async def get_books_endpoint(
@@ -69,24 +76,31 @@ async def update_book_endpoint(
     db: Session = Depends(get_session)
 ):
     """Update book information"""
-    book = get_book(db, book_id)
-    if not book:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Book with ID {book_id} not found"
-        )
-    
-    # Check if ISBN is being updated and already exists
-    if book_update.isbn and book_update.isbn != book.isbn:
-        existing_book = get_book_by_isbn(db, book_update.isbn)
-        if existing_book:
+    try:
+        book = get_book(db, book_id)
+        if not book:
             raise HTTPException(
-                status_code=400,
-                detail=f"Book with ISBN {book_update.isbn} already exists"
+                status_code=404,
+                detail=f"Book with ID {book_id} not found"
             )
-    
-    # Update using CRUD function
-    return update_book(db, book, book_update)
+        
+        # Check if ISBN is being updated and already exists
+        if book_update.isbn and book_update.isbn != book.isbn:
+            existing_book = get_book_by_isbn(db, book_update.isbn)
+            if existing_book:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Book with ISBN {book_update.isbn} already exists"
+                )
+        
+        # Update using CRUD function
+        return update_book(db, book, book_update)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while updating the book")
 
 @router.delete("/{book_id}", status_code=204)
 async def delete_book_endpoint(

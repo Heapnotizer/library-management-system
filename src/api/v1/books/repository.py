@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from typing import List, Optional
 from datetime import datetime, timezone
 
@@ -7,22 +8,38 @@ from .models import Book, BookCreate, BookUpdate
 
 def create_book(db: Session, book_data: BookCreate) -> Book:
     """Create a new book"""
-    db_book = Book(**book_data.model_dump())
-    db.add(db_book)
-    db.commit()
-    db.refresh(db_book)
-    return db_book
+    try:
+        db_book = Book(**book_data.model_dump())
+        db.add(db_book)
+        db.commit()
+        db.refresh(db_book)
+        return db_book
+    except IntegrityError as e:
+        db.rollback()
+        # Foreign key constraint violation (author doesn't exist)
+        if "author_id" in str(e):
+            raise ValueError("Author with the specified ID does not exist")
+        # Unique constraint violation (ISBN already exists)
+        if "isbn" in str(e):
+            raise ValueError("Book with this ISBN already exists")
+        raise ValueError(f"Data integrity error: {str(e)}")
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise RuntimeError(f"Database error while creating book: {str(e)}")
 
 
 def get_book(db: Session, book_id: int) -> Optional[Book]:
-    """Get book by ID"""
-    # TODO: prefetch related author data
-    return db.query(Book).filter(Book.id == book_id).first()
+    """Get book by ID with author data"""
+    return db.query(Book).options(
+        selectinload(Book.author)
+    ).filter(Book.id == book_id).first()
 
 
 def get_book_by_isbn(db: Session, isbn: str) -> Optional[Book]:
-    """Get book by ISBN"""
-    return db.query(Book).filter(Book.isbn == isbn).first()
+    """Get book by ISBN with author data"""
+    return db.query(Book).options(
+        selectinload(Book.author)
+    ).filter(Book.isbn == isbn).first()
 
 
 def get_books(
@@ -33,14 +50,20 @@ def get_books(
     author_id: Optional[int] = None,
     available_only: bool = False
 ) -> List[Book]:
-    """Get multiple books with filtering"""
-    query = db.query(Book)
+    """Get multiple books with filtering and prefetched author data"""
+    from ..authors.models import Author
+    
+    query = db.query(Book).options(
+        selectinload(Book.author)
+    )
     
     # Apply filters
     if search:
-        query = query.filter(
+        # Join with author for name search, use LEFT JOIN to include books without authors
+        query = query.outerjoin(Author, Book.author_id == Author.id).filter(
             (Book.title.ilike(f"%{search}%")) |
-            (Book.isbn.ilike(f"%{search}%"))
+            (Book.isbn.ilike(f"%{search}%")) |
+            (Author.name.ilike(f"%{search}%"))
         )
     
     if author_id:
@@ -53,15 +76,31 @@ def get_books(
 
 
 def update_book(db: Session, book: Book, book_update: BookUpdate) -> Book:
-    """Update book information"""
-    update_data = book_update.model_dump(exclude_unset=True)
-    if update_data:
-        update_data["updated_at"] = datetime.now(timezone.utc)
-        for field, value in update_data.items():
-            setattr(book, field, value)
-        db.commit()
-        db.refresh(book)
-    return book
+    """Update book information and return with author data"""
+    try:
+        update_data = book_update.model_dump(exclude_unset=True)
+        if update_data:
+            update_data["updated_at"] = datetime.now(timezone.utc)
+            for field, value in update_data.items():
+                setattr(book, field, value)
+            db.commit()
+            db.refresh(book)
+            
+            # If author_id was updated, reload the book with new author data
+            if 'author_id' in update_data:
+                return get_book(db, book.id)
+        
+        return book
+    except IntegrityError as e:
+        db.rollback()
+        if "author_id" in str(e):
+            raise ValueError("Author with the specified ID does not exist")
+        if "isbn" in str(e):
+            raise ValueError("Book with this ISBN already exists")
+        raise ValueError(f"Data integrity error: {str(e)}")
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise RuntimeError(f"Database error while updating book: {str(e)}")
 
 
 def delete_book(db: Session, book: Book) -> None:

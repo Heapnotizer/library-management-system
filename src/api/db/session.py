@@ -4,6 +4,11 @@ from sqlmodel import SQLModel, Session
 
 from .config import DATABASE_URL
 
+# Import all models to register them with SQLModel.metadata
+# This ensures foreign key relationships are resolved correctly
+from ..v1.authors.models import Author
+from ..v1.books.models import Book
+
 if DATABASE_URL == "":
     raise NotImplementedError("DATABASE_URL needs to be set")
 

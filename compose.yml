@@ -1,4 +1,17 @@
 services:
+  db_service:
+    image: postgres:16
+    env_file:
+      - .env.compose
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pg-user -d pgdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   app:
     image: creativescript-lms:v1
     build:
@@ -11,6 +24,9 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
     volumes:
       - ./src:/code:rw
+    depends_on:
+      db_service:
+        condition: service_healthy
     develop:
       watch:
         - action: rebuild
@@ -19,10 +35,3 @@ services:
           path: requirements.txt
         - action: rebuild
           path: compose.yaml
-
-  db_service:
-    image: postgres
-    env_file:
-      - .env.compose
-    ports:
-      - "5432:5432"
